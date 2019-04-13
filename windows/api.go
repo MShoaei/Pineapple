@@ -26,6 +26,9 @@ var (
 	mapVirtualKeyExW         = user32.NewProc("MapVirtualKeyExW")
 	getKeyboardLayout        = user32.NewProc("GetKeyboardLayout")
 	getKeyboardState         = user32.NewProc("GetKeyboardState")
+	unhookWinEvent           = user32.NewProc("UnhookWinEvent")
+	getAsyncKeyState         = user32.NewProc("GetAsyncKeyState")
+	getKeyState              = user32.NewProc("GetKeyState")
 )
 
 func Test() {
@@ -148,7 +151,7 @@ func GetKeyboardLayout(idThread DWORD) HKL {
 	return HKL(r1)
 }
 
-func ToUnicodeEx(wVirtualKey UINT, wScanCode UINT, lpKeyState *[]byte, pwszBuff *[]uint16, cchBuff int, wFlags UINT, dwhkl HKL) int {
+func ToUnicodeEx(wVirtualKey UINT, wScanCode UINT, lpKeyState *[]byte, pwszBuff *[]rune, cchBuff int, wFlags UINT, dwhkl HKL) int {
 	r1, _, _ := toUnicodeEx.Call(
 		uintptr(wVirtualKey),
 		uintptr(wScanCode),
@@ -175,7 +178,27 @@ func GetForegroundWindow() HWND {
 }
 
 func GetKeyboardState(lpKeyState *[]byte) bool {
-	ret, _, _ := getKeyboardState.Call(
+	r1, _, _ := getKeyboardState.Call(
 		uintptr(unsafe.Pointer(&(*lpKeyState)[0])))
-	return ret != 0
+	return r1 != 0
+}
+
+func UnhookWinEvent(hWinEventHook HWINEVENTHOOK) BOOL {
+	r1, _, _ := unhookWinEvent.Call(
+		uintptr(hWinEventHook),
+	)
+	return BOOL(r1)
+}
+
+func GetAsyncKeyState(vKey int) uint16 {
+	r1, _, _ := getAsyncKeyState.Call(uintptr(vKey))
+	return uint16(r1)
+}
+
+func GetKeyState(nVirtKey int) uint16 {
+	r1, _, _ := getKeyState.Call(
+		uintptr(nVirtKey),
+	)
+
+	return uint16(r1)
 }
