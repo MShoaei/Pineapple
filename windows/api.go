@@ -1,7 +1,6 @@
 package windows
 
 import (
-	"fmt"
 	"syscall"
 	"unsafe"
 
@@ -12,10 +11,10 @@ var kernel32 = windows.NewLazySystemDLL("kernel32.dll")
 var user32 = windows.NewLazySystemDLL("user32.dll")
 
 var (
+	procSetFileAttributesW   = kernel32.NewProc("SetFileAttributesW")
 	setWindowsHookExA        = user32.NewProc("SetWindowsHookExA")
 	getWindowThreadProcessID = user32.NewProc("GetWindowThreadProcessId")
 	toUnicodeEx              = user32.NewProc("ToUnicodeEx")
-	translateMessage         = user32.NewProc("TranslateMessage")
 	getForegroundWindow      = user32.NewProc("GetForegroundWindow")
 	setWinEventHook          = user32.NewProc("SetWinEventHook")
 	callNextHookEx           = user32.NewProc("CallNextHookEx")
@@ -29,44 +28,9 @@ var (
 	unhookWinEvent           = user32.NewProc("UnhookWinEvent")
 	getAsyncKeyState         = user32.NewProc("GetAsyncKeyState")
 	getKeyState              = user32.NewProc("GetKeyState")
+	//translateMessage         = user32.NewProc("TranslateMessage")
+
 )
-
-func Test() {
-
-	if err := setWindowsHookExA.Find(); err != nil {
-		fmt.Println("did not find")
-	}
-	if err := getWindowThreadProcessID.Find(); err != nil {
-		fmt.Println("did not find GetWindowThreadProcessId")
-	}
-	if err := toUnicodeEx.Find(); err != nil {
-		fmt.Println("did not find ToUnicodeEx")
-	}
-	if err := translateMessage.Find(); err != nil {
-		fmt.Println("did not find TranslateMessage")
-	}
-	if err := getForegroundWindow.Find(); err != nil {
-		fmt.Println("did not find GetForegroundWindow")
-	}
-	if err := setWinEventHook.Find(); err != nil {
-		fmt.Println("did not find SetWinEventHook")
-	}
-	if err := setWinEventHook.Find(); err != nil {
-		fmt.Println("did not find SetWinEventHook")
-	}
-	if err := getMessageW.Find(); err != nil {
-		fmt.Println("did not find GetMessage")
-	}
-	if err := unhookWindowsHookEx.Find(); err != nil {
-		fmt.Println("did not find UnhookWindowsHookEx")
-	}
-	if err := mapVirtualKeyExW.Find(); err != nil {
-		fmt.Println("did not find MapVirtualKeyExW")
-	}
-	if err := getKeyboardLayout.Find(); err != nil {
-		fmt.Println("did not find GetKeyboardLayout")
-	}
-}
 
 func SetWindowsHookExA(idHook int, lpfn HOOKPROC, hmod HINSTANCE, dwThreadID DWORD) HHOOK {
 	r1, _, _ := setWindowsHookExA.Call(
@@ -127,7 +91,7 @@ func GetWindowTextW(hwnd HWND) string {
 	textLen := GetWindowTextLengthW(hwnd) + 1
 
 	buf := make([]uint16, textLen)
-	getWindowTextW.Call(
+	_, _, _ = getWindowTextW.Call(
 		uintptr(hwnd),
 		uintptr(unsafe.Pointer(&buf[0])),
 		uintptr(textLen))
@@ -201,4 +165,29 @@ func GetKeyState(nVirtKey int) uint16 {
 	)
 
 	return uint16(r1)
+}
+
+func SetFileAttributes(name *uint16, attrs uint32) (err error) {
+	r1, _, e1 := syscall.Syscall(procSetFileAttributesW.Addr(), 2, uintptr(unsafe.Pointer(name)), uintptr(attrs), 0)
+	if r1 == 0 {
+		if e1 != 0 {
+			err = errnoErr(e1)
+		} else {
+			err = syscall.EINVAL
+		}
+	}
+	return
+}
+
+func errnoErr(e syscall.Errno) error {
+	switch e {
+	case 0:
+		return nil
+	case errnoERROR_IO_PENDING:
+		return errERROR_IO_PENDING
+	}
+	// TODO: add more here, after collecting data on the common
+	// error values see on Windows. (perhaps when running
+	// all.bat?)
+	return e
 }

