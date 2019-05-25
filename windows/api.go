@@ -43,7 +43,7 @@ func SetWindowsHookExA(idHook int, lpfn HOOKPROC, hmod HINSTANCE, dwThreadID DWO
 	// return r1
 }
 
-func CallNextHookEx(hhk HHOOK, nCode int, wParam WPARAM, lParam LPARAM) LRESULT {
+func CallNextHookEx(hhk HHOOK, nCode int, wParam, lParam uintptr) LRESULT {
 	r1, _, _ := callNextHookEx.Call(
 		uintptr(hhk),
 		uintptr(nCode),
@@ -63,21 +63,27 @@ func GetMessageW(lpMSG LPMSG, hwnd HWND, wMsgFilterMin UINT, wMsgFilterMax UINT)
 	return BOOL(r1)
 }
 
-func UnhookWindowsHookEx(hhk HHOOK) BOOL {
-	r1, _, _ := unhookWindowsHookEx.Call(uintptr(hhk))
-	return BOOL(r1)
+func UnhookWindowsHookEx(hhk HHOOK) bool {
+	ret, _, _ := unhookWindowsHookEx.Call(uintptr(hhk))
+	return ret != 0
 }
 
-func SetWinEventHook(eventMin DWORD, eventMax DWORD, hmodWinEventProc HMODULE, pfnWinEventProc WINEVENTPROC, idProcess DWORD, idThread DWORD, dwFlags DWORD) HWINEVENTHOOK {
-	r1, _, _ := setWinEventHook.Call(
+func SetWinEventHook(eventMin uint32, eventMax uint32, hmodWinEventProc HMODULE, callbackFunction WINEVENTPROC, idProcess uint32, idThread uint32, dwFlags uint32) (HWINEVENTHOOK, error) {
+	ret, _, err := syscall.Syscall9(setWinEventHook.Addr(), 7,
 		uintptr(eventMin),
 		uintptr(eventMax),
 		uintptr(hmodWinEventProc),
-		syscall.NewCallback(pfnWinEventProc),
+		windows.NewCallback(callbackFunction),
 		uintptr(idProcess),
 		uintptr(idThread),
-		uintptr(dwFlags))
-	return HWINEVENTHOOK(r1)
+		uintptr(dwFlags),
+		0, 0)
+
+	if ret == 0 {
+		return 0, err
+	}
+
+	return HWINEVENTHOOK(ret), nil
 }
 
 func GetWindowTextLengthW(hwnd HWND) int {

@@ -1,5 +1,6 @@
 package windows
 
+//Basic Windows API data types
 type (
 	PVOID           uintptr
 	HANDLE          PVOID
@@ -9,7 +10,6 @@ type (
 	DWORD           uint32
 	POINT           tagPOINT
 	MSG             tagMSG
-	HOOKPROC        func(int, WPARAM, uintptr) LRESULT
 	HINSTANCE       HANDLE
 	HHOOK           HANDLE
 	LONG_PTR        int
@@ -24,9 +24,10 @@ type (
 	LPMSG           *MSG
 	BOOL            int
 	HWINEVENTHOOK   HANDLE
-	WINEVENTPROC    func(HWINEVENTHOOK, DWORD, HWND, LONG, LONG, DWORD, DWORD) uintptr
-	HMODULE         HINSTANCE
+	HMODULE         uintptr
 	LONG            int32
 	KBDLLHOOKSTRUCT tagKBDLLHOOKSTRUCT
 	LPDWRD          *DWORD
+	HOOKPROC        func(int, uintptr, uintptr) LRESULT
+	WINEVENTPROC    func(hWinEventHook HWINEVENTHOOK, event uint32, hwnd HWND, idObject int32, idChild int32, idEventThread uint32, dwmsEventTime uint32) uintptr
 )
